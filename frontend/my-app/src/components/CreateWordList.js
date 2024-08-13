@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { saveWordList } from '../utils/wordListUtils';
-import '../ReactCSS/CreateWordList.css';
+import axios from 'axios';
+import '../ReactCSS/MergeCSS.css';
 
 function CreateWordList({ user }) {
     const [listName, setListName] = useState('');
@@ -28,12 +28,31 @@ function CreateWordList({ user }) {
         setWords(words.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = (e) => {
+    const saveWordList = async (newWordList) => {
+        try {
+            const response = await axios.post('/api/vocalist', newWordList, {
+                withCredentials: true // 인증 정보 포함
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error saving word list:', error);
+            throw error;
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (listName && words.length > 0) {
-            const newWordList = { id: Date.now(), name: listName, words: words, userId: user.sub };
-            saveWordList(newWordList);
-            navigate('/words');
+            const newWordList = {
+                title: listName,
+                vocaContents: words.map(w => ({ text: w.word, meaning: w.definition }))
+            };
+            try {
+                await saveWordList(newWordList);
+                navigate('/words');
+            } catch (error) {
+                alert('단어장 저장에 실패했습니다. 다시 시도해주세요.');
+            }
         } else {
             alert('단어장 이름을 입력하고 최소 한 개의 단어를 추가해주세요.');
         }
